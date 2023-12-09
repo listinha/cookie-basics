@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby
 require 'socket'
+require 'cgi'
 
 server_socket = TCPServer.new('0.0.0.0', 9876)
 server_socket.listen(10)
@@ -58,6 +59,24 @@ loop do
     client_socket.write("Content-Length: #{content.b.length}\r\n")
     client_socket.write("\r\n")
     client_socket.write(content.b)
+  elsif http_path.start_with?('/set_favorite')
+    # /set_favorite?fav=Book&age=40&fkjffj
+    actual_path, query_string = http_path.split('?', 2)
+    query_parameters = query_string.split('&').to_h{ |x| k, v = x.split('=', 2) }
+
+    new_favorite_item = query_parameters['fav']
+
+    puts "THIS DOES WORKS!: #{new_favorite_item}"
+
+    new_favorite_item = CGI.unescape(new_favorite_item)
+    puts "Setting cookie: #{new_favorite_item}"
+
+    client_socket.write("HTTP/1.1 302 Temporary\r\n")
+    client_socket.write("Location: /\r\n")
+    client_socket.write("Set-Cookie: favorite_item=#{new_favorite_item}\r\n")
+    # client_socket.write("Set-Cookie: favorite_item=wooden%20house\r\n")
+    client_socket.write("Connection: close\r\n")
+    client_socket.write("\r\n")
   else
     ENV['HTTP_METHOD'] = http_method
     ENV['HTTP_PATH'] = http_path
@@ -71,7 +90,7 @@ loop do
     ENV['HTTP_PAYLOAD'] = nil
 
     client_socket.write("HTTP/1.1 200 OK\r\n")
-    client_socket.write("Content-Type: text/html\r\n")
+    client_socket.write("Content-Type: text/html; charset=utf-8\r\n")
     client_socket.write("Connection: close\r\n")
     client_socket.write("Content-Length: #{content.b.length}\r\n")
     client_socket.write("X-Foo-Bar: qux\r\n")

@@ -18,6 +18,16 @@ if http_path == '/identify_user'
   File.write('database.txt', identified_person_name)
 end
 
+cookies = {}
+cookie_string = ENV['HTTP_COOKIE']
+if cookie_string
+  cookies = cookie_string.split(';').to_h{ |x| key, value = x.split('=', 2).map(&:strip) }
+end
+
+def is_favorite?(item, cookies)
+  item[:name] == cookies['favorite_item']
+end
+
 items_for_sale = [
   { name: 'Book', qty: 4 },
   { name: 'Wooden house', qty: 2 },
@@ -55,8 +65,14 @@ puts "<p>#{Time.now}</p>"
 
 puts "<ul>"
 items_for_sale.each do |item|
+  favorite_str = if is_favorite?(item, cookies)
+    " - 💙"
+  else
+    " - 🫥 (<a href=\"/set_favorite?fav=#{item[:name]}\">set</a>)"
+  end
+
   puts "<li>"
-  puts "#{item[:name]} - #{item[:qty]} units"
+  puts "#{item[:name]} - #{item[:qty]} units#{favorite_str}"
   puts "</li>"
 end
 puts "</ul>"
